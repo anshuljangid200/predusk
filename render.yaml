@@ -1,0 +1,63 @@
+databases:
+  - name: predusk-db
+    plan: free
+    databaseName: doc_proc
+    user: postgres
+
+services:
+  - type: redis
+    name: predusk-redis
+    plan: free
+    ipAllowList: []
+
+  - type: web
+    name: predusk-api
+    plan: free
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: predusk-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: predusk-redis
+          type: redis
+          property: connectionString
+      - key: S3_ENDPOINT
+        value: https://s3.amazonaws.com
+      - key: S3_ACCESS_KEY
+        value: CHANGEME
+      - key: S3_SECRET_KEY
+        value: CHANGEME
+      - key: S3_BUCKET
+        value: predusk-documents
+
+  - type: worker
+    name: predusk-worker
+    plan: free
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A celery_app worker --loglevel=info
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: predusk-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: predusk-redis
+          type: redis
+          property: connectionString
+      - key: S3_ENDPOINT
+        value: https://s3.amazonaws.com
+      - key: S3_ACCESS_KEY
+        value: CHANGEME
+      - key: S3_SECRET_KEY
+        value: CHANGEME
+      - key: S3_BUCKET
+        value: predusk-documents
