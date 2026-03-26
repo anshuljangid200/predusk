@@ -1,48 +1,42 @@
-import boto3
-from botocore.exceptions import ClientError
-from app.core.config import S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET
+import os
+from io import BytesIO
+from pathlib import Path
 
 class S3Service:
-    @staticmethod
-    def get_client():
-        return boto3.client(
-            "s3",
-            endpoint_url=S3_ENDPOINT,
-            aws_access_key_id=S3_ACCESS_KEY,
-            aws_secret_access_key=S3_SECRET_KEY,
-            region_name="us-east-1", # Minio doesn't care much about region
-        )
+    """
+    Local file storage service — files are saved to disk.
+    Drop-in replacement for the real S3 service for demo/dev deployments.
+    """
+    UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "/tmp/predusk_uploads"))
+
+    @classmethod
+    def _ensure_dir(cls):
+        cls.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
     def upload_file(file_obj, object_name):
-        client = S3Service.get_client()
         try:
-            client.upload_fileobj(file_obj, S3_BUCKET, object_name)
+            S3Service._ensure_dir()
+            dest = S3Service.UPLOAD_DIR / object_name
+            with open(dest, "wb") as f:
+                f.write(file_obj.read())
             return True
-        except ClientError as e:
-            print(f"S3 Upload Error: {e}")
+        except Exception as e:
+            print(f"Local Upload Error: {e}")
             return False
 
     @staticmethod
     def download_file(object_name, file_path):
-        client = S3Service.get_client()
         try:
-            client.download_file(S3_BUCKET, object_name, file_path)
+            src = S3Service.UPLOAD_DIR / object_name
+            import shutil
+            shutil.copy(str(src), file_path)
             return True
-        except ClientError as e:
-            print(f"S3 Download Error: {e}")
+        except Exception as e:
+            print(f"Local Download Error: {e}")
             return False
 
     @staticmethod
     def get_presigned_url(object_name, expiration=3600):
-        client = S3Service.get_client()
-        try:
-            url = client.generate_presigned_url(
-                "get_object",
-                Params={"Bucket": S3_BUCKET, "Key": object_name},
-                ExpiresIn=expiration,
-            )
-            return url
-        except ClientError as e:
-            print(f"S3 Presigned URL Error: {e}")
-            return None
+        # Not meaningful for local storage; just return the path
+        return f"/uploads/{object_name}"

@@ -27,14 +27,6 @@ services:
           name: predusk-redis
           type: redis
           property: connectionString
-      - key: S3_ENDPOINT
-        value: https://s3.amazonaws.com
-      - key: S3_ACCESS_KEY
-        value: CHANGEME
-      - key: S3_SECRET_KEY
-        value: CHANGEME
-      - key: S3_BUCKET
-        value: predusk-documents
 
   - type: worker
     name: predusk-worker
@@ -53,11 +45,3 @@ services:
           name: predusk-redis
           type: redis
           property: connectionString
-      - key: S3_ENDPOINT
-        value: https://s3.amazonaws.com
-      - key: S3_ACCESS_KEY
-        value: CHANGEME
-      - key: S3_SECRET_KEY
-        value: CHANGEME
-      - key: S3_BUCKET
-        value: predusk-documents
